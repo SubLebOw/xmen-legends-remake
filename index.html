@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Mobile viewport: fill the screen, no pinch/double-tap zoom while playing -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1a1024">
+  <title>X-Men Legends II Fan Remake - Slice 1</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%9A%94%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- The "import map" tells the browser where to download Three.js from.
+       That lets our JS files simply write: import * as THREE from 'three';
+       No install or build step needed. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- The 3D canvas gets put inside this div by main.js -->
+  <div id="game"></div>
+
+  <!-- HUD = Heads-Up Display: health, wave, kills, cooldowns -->
+  <div id="hud">
+    <div id="hud-top-left">
+      <div class="portrait">W</div>
+      <div>
+        <div class="name">WOLVERINE</div>
+        <div class="bar"><div id="health-fill"></div><span id="health-text">100</span></div>
+        <div class="regen">Healing factor active</div>
+      </div>
+    </div>
+
+    <div id="hud-top-right">
+      <div>WAVE <span id="wave">1</span></div>
+      <div>KILLS <span id="kills">0</span></div>
+    </div>
+
+    <!-- Ability cooldowns (keyboard players) -->
+    <div id="abilities" class="kb-only">
+      <div class="ability ready" id="ab-dash"><span class="cd-text"></span><span class="key">K</span><span class="label">DASH</span></div>
+      <div class="ability ready" id="ab-spin"><span class="cd-text"></span><span class="key">L</span><span class="label">BERSERK</span></div>
+    </div>
+
+    <div id="controls-hint" class="kb-only">
+      <b>WASD / Arrows</b> move &nbsp;·&nbsp; <b>J / Left-click</b> slash combo &nbsp;·&nbsp;
+      <b>K / Space</b> dash &nbsp;·&nbsp; <b>L</b> berserker spin
+    </div>
+
+    <div id="banner"><div id="banner-text"></div><div id="banner-sub"></div></div>
+  </div>
+
+  <!-- Red flash when Wolverine gets hit -->
+  <div id="damage-flash"></div>
+
+  <!-- Touch controls (only shown on phones/tablets, see touch.js) -->
+  <div id="touch-controls" class="touch-only">
+    <div id="joystick-zone">
+      <div id="joystick-base"><div id="joystick-knob"></div></div>
+    </div>
+    <div id="touch-buttons">
+      <button id="btn-slash" class="tbtn">SLASH</button>
+      <button id="btn-dash" class="tbtn ready"><span class="cd-text"></span><span class="lbl">DASH</span></button>
+      <button id="btn-spin" class="tbtn ready"><span class="cd-text"></span><span class="lbl">BERSERK</span></button>
+    </div>
+  </div>
+
+  <!-- Title screen + game over screen -->
+  <div id="overlay">
+    <div class="panel" id="title-panel">
+      <div class="small">Fan remake · Slice 1</div>
+      <h1>X-MEN LEGENDS II</h1>
+      <h2>Rise of Apocalypse</h2>
+      <p>Apocalypse's grunts are flooding the arena. Survive as many waves as you can, bub.</p>
+      <ul class="kb-only">
+        <li><b>WASD / Arrows</b> - move</li>
+        <li><b>J / Left-click</b> - claw slash (tap 3x for a combo)</li>
+        <li><b>K / Space</b> - dash lunge</li>
+        <li><b>L</b> - berserker spin (8s cooldown)</li>
+      </ul>
+      <ul class="touch-only">
+        <li><b>Left thumb</b> - drag to move</li>
+        <li><b>SLASH</b> - claw combo (hold to keep slashing)</li>
+        <li><b>DASH</b> - lunge through enemies</li>
+        <li><b>BERSERK</b> - spin attack (8s cooldown)</li>
+      </ul>
+      <button id="start-btn" class="big-btn">START</button>
+      <div class="best" id="best-text"></div>
+      <div class="legal">Free non-commercial fan project. Not affiliated with Marvel or Activision.</div>
+    </div>
+
+    <div class="panel hidden" id="gameover-panel">
+      <h1>DEFEATED</h1>
+      <p id="gameover-stats"></p>
+      <button id="restart-btn" class="big-btn">TRY AGAIN</button>
+      <div class="small kb-only">or press Enter / R</div>
+    </div>
+  </div>
+
+  <!-- Our game code. type="module" lets files import each other. -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
