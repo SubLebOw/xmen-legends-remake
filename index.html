@@ -2,119 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- Mobile viewport: fill the screen, no pinch/double-tap zoom while playing -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#14191d">
-  <meta name="description" content="COREBURN - an endless arena brawler. Play as Sarrow, a scavenger with a burning energy core, and carve through the machine cult called the Grindchoir.">
-  <title>COREBURN - Endless Arena Brawler</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Cpolygon points=%2250,4 90,27 90,73 50,96 10,73 10,27%22 fill=%22%231d2024%22 stroke=%22%23e0702a%22 stroke-width=%226%22/%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2218%22 fill=%22%233ff6e0%22/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css">
-
-  <!-- The "import map" tells the browser where to download Three.js from.
-       That lets our JS files simply write: import * as THREE from 'three';
-       No install or build step needed. -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
-      }
-    }
-  </script>
+  <title>COREBURN has moved</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- This game now lives at https://sublebow.github.io/coreburn/ -->
+  <link rel="canonical" href="https://sublebow.github.io/coreburn/">
+  <meta http-equiv="refresh" content="0; url=https://sublebow.github.io/coreburn/">
+  <script>location.replace('https://sublebow.github.io/coreburn/' + location.search + location.hash);</script>
+  <style>body{background:#14191d;color:#fff;font-family:Arial,sans-serif;text-align:center;padding-top:20vh}a{color:#3ff6e0}</style>
 </head>
 <body>
-  <!-- The 3D canvas gets put inside this div by main.js -->
-  <div id="game"></div>
-
-  <!-- HUD = Heads-Up Display: health, score, wave, cooldowns -->
-  <div id="hud">
-    <div id="hud-top-left">
-      <!-- Sarrow's emblem: a glowing core inside a hexagon -->
-      <div class="emblem">
-        <svg viewBox="0 0 100 100"><polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="#1d2024" stroke="#e0702a" stroke-width="7"/><circle class="emblem-core" cx="50" cy="50" r="17" fill="#3ff6e0"/></svg>
-      </div>
-      <div>
-        <div class="name">SARROW</div>
-        <div class="bar"><div id="health-fill"></div><span id="health-text">100</span></div>
-        <div class="regen">Core recharge active</div>
-      </div>
-    </div>
-
-    <div id="hud-top-right">
-      <div>SCORE <span id="score">0</span></div>
-      <div class="sub">WAVE <span id="wave">1</span> &nbsp; KILLS <span id="kills">0</span></div>
-    </div>
-
-    <!-- Boss health bar (hidden until a boss shows up) -->
-    <div id="boss-bar" class="hidden">
-      <div id="boss-name">BOSS</div>
-      <div class="boss-track"><div id="boss-fill"></div></div>
-    </div>
-
-    <!-- Ability cooldowns (keyboard players) -->
-    <div id="abilities" class="kb-only">
-      <div class="ability ready" id="ab-dash"><span class="cd-text"></span><span class="key">K</span><span class="label">BLINK</span></div>
-      <div class="ability ready" id="ab-spin"><span class="cd-text"></span><span class="key">L</span><span class="label">OVERDRIVE</span></div>
-    </div>
-
-    <div id="controls-hint" class="kb-only">
-      <b>WASD / Arrows</b> move &nbsp;·&nbsp; <b>J / Left-click</b> slash combo &nbsp;·&nbsp;
-      <b>K / Space</b> blink &nbsp;·&nbsp; <b>L</b> overdrive spin
-    </div>
-
-    <div id="banner"><div id="banner-text"></div><div id="banner-sub"></div></div>
-  </div>
-
-  <!-- Red flash when Sarrow gets hit -->
-  <div id="damage-flash"></div>
-
-  <!-- Touch controls (only shown on phones/tablets, see touch.js) -->
-  <div id="touch-controls" class="touch-only">
-    <div id="joystick-zone">
-      <div id="joystick-base"><div id="joystick-knob"></div></div>
-    </div>
-    <div id="touch-buttons">
-      <button id="btn-slash" class="tbtn">SLASH</button>
-      <button id="btn-dash" class="tbtn ready"><span class="cd-text"></span><span class="lbl">BLINK</span></button>
-      <button id="btn-spin" class="tbtn ready"><span class="cd-text"></span><span class="lbl">OVER<br>DRIVE</span></button>
-    </div>
-  </div>
-
-  <!-- Title screen + game over screen -->
-  <div id="overlay">
-    <div class="panel" id="title-panel">
-      <h1>COREBURN</h1>
-      <h2>Endless Arena Brawler</h2>
-      <p class="logline">The Grindchoir melts down anything with a pulse to feed its machine hymn. Sarrow, a scavenger
-        with a stolen reactor core burning in his chest, has decided the song ends here.</p>
-      <ul class="kb-only">
-        <li><b>WASD / Arrows</b> - move</li>
-        <li><b>J / Left-click</b> - talon slash (tap 3x for a combo, hold to keep going)</li>
-        <li><b>K / Space</b> - blink dash (untouchable while blinking)</li>
-        <li><b>L</b> - overdrive spin (8s cooldown)</li>
-      </ul>
-      <ul class="touch-only">
-        <li><b>Left thumb</b> - drag to move</li>
-        <li><b>SLASH</b> - talon combo (hold to keep slashing)</li>
-        <li><b>BLINK</b> - dash through enemies and bullets</li>
-        <li><b>OVERDRIVE</b> - spin attack (8s cooldown)</li>
-      </ul>
-      <p class="small">Endless waves · a boss every 5 waves · how far can you go?</p>
-      <button id="start-btn" class="big-btn">START</button>
-      <div class="best" id="best-text"></div>
-    </div>
-
-    <div class="panel hidden" id="gameover-panel">
-      <h1>CORE OFFLINE</h1>
-      <div id="gameover-score"></div>
-      <p id="gameover-stats"></p>
-      <button id="restart-btn" class="big-btn">PLAY AGAIN</button>
-      <div class="small"><span class="kb-only">Press any key or click to restart</span><span class="touch-only">Tap anywhere to restart</span></div>
-    </div>
-  </div>
-
-  <!-- Our game code. type="module" lets files import each other. -->
-  <script type="module" src="js/main.js"></script>
+  <p>COREBURN has moved to <a href="https://sublebow.github.io/coreburn/">sublebow.github.io/coreburn</a>.</p>
 </body>
 </html>
