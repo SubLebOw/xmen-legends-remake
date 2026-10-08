@@ -1,7 +1,7 @@
 // touch.js
 // On-screen controls for phones and tablets:
 //  - a virtual joystick on the left half of the screen (appears under your thumb)
-//  - SLASH / DASH / BERSERK buttons on the right
+//  - SLASH / BLINK / OVERDRIVE buttons on the right
 // These just feed into the same Input object the keyboard uses.
 
 // Is this a touch-first device (phone / tablet)?

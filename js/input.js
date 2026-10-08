@@ -1,9 +1,9 @@
 // input.js
 // Keeps track of what the player is pressing (keyboard, mouse, and touch).
 // The rest of the game never looks at raw key codes - it just asks things like
-// "which way should Wolverine move?" or "was the attack button pressed this frame?"
+// "which way should the hero move?" or "was the attack button pressed this frame?"
 
-// Keys that move Wolverine
+// Keys that move the hero
 const MOVE_KEYS = {
   KeyW: 'up', ArrowUp: 'up',
   KeyS: 'down', ArrowDown: 'down',

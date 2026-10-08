@@ -1,9 +1,9 @@
 // player.js
-// Wolverine! Builds his blocky 3D model, moves him around, and handles his attacks:
-//   - 3-hit claw combo (J / click / SLASH)
-//   - dash lunge that is invincible and hurts enemies you pass through (K / Space / DASH)
-//   - berserker spin attack with a cooldown (L / BERSERK)
-//   - healing factor: health slowly comes back by itself
+// Sarrow, our hero! Builds his blocky 3D model, moves him around, and handles his attacks:
+//   - 3-hit talon combo (J / click / SLASH)
+//   - blink dash: untouchable, and hurts enemies you pass through (K / Space / BLINK)
+//   - overdrive spin attack with a cooldown (L / OVERDRIVE)
+//   - core recharge: health slowly comes back by itself
 import * as THREE from 'three';
 
 // The camera looks at the arena from the +X/+Z corner. These are the floor directions
@@ -11,11 +11,11 @@ import * as THREE from 'three';
 const SCREEN_UP = new THREE.Vector3(-1, 0, -1).normalize();
 const SCREEN_RIGHT = new THREE.Vector3(1, 0, -1).normalize();
 
-// The three hits of the claw combo. Tweak these numbers to change how it feels!
+// The three hits of the talon combo. Tweak these numbers to change how it feels!
 const COMBO = [
   { damage: 12, knockback: 6, range: 2.4, duration: 0.24 }, // hit 1: one arm
   { damage: 12, knockback: 6, range: 2.4, duration: 0.24 }, // hit 2: other arm
-  { damage: 28, knockback: 14, range: 2.9, duration: 0.40 }, // hit 3: big double-claw finisher
+  { damage: 28, knockback: 14, range: 2.9, duration: 0.40 }, // hit 3: big double-talon finisher
 ];
 
 const MOVE_SPEED = 7;
@@ -35,32 +35,41 @@ export class Player {
     this.position = new THREE.Vector3();
     this.velocity = new THREE.Vector3();
 
-    this.model = buildWolverine();
+    this.model = buildHero();
     scene.add(this.model.root);
 
-    // White arc that shows the claw swipe
+    // Glowing arc that shows the talon swipe
     this.slashArc = new THREE.Mesh(
       new THREE.RingGeometry(0.9, 2.5, 20, 1, -Math.PI / 2 - Math.PI * 0.45, Math.PI * 0.9),
-      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      new THREE.MeshBasicMaterial({ color: 0x7ffff2, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })
     );
     this.slashArc.rotation.x = -Math.PI / 2;
     this.slashArc.position.y = 1.1;
     this.model.root.add(this.slashArc);
 
-    // Red ring that spins around Wolverine during the berserker attack
+    // Energy ring that spins around Sarrow during the overdrive attack
     this.spinRing = new THREE.Mesh(
       new THREE.RingGeometry(1.2, 3.2, 24, 1, 0, Math.PI * 1.5),
-      new THREE.MeshBasicMaterial({ color: 0xff4020, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      new THREE.MeshBasicMaterial({ color: 0x3ff6e0, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false })
     );
     this.spinRing.rotation.x = -Math.PI / 2;
     this.spinRing.position.y = 0.9;
     this.spinRing.visible = false;
     this.model.root.add(this.spinRing);
 
+    // Teal ring on the floor under Sarrow so you can always spot him in a crowd
+    const marker = new THREE.Mesh(
+      new THREE.RingGeometry(0.6, 0.78, 28),
+      new THREE.MeshBasicMaterial({ color: 0x3ff6e0, transparent: true, opacity: 0.6, depthWrite: false })
+    );
+    marker.rotation.x = -Math.PI / 2;
+    marker.position.y = 0.03;
+    this.model.root.add(marker);
+
     this.reset();
   }
 
-  // Put Wolverine back to full health in the middle of the arena
+  // Put Sarrow back to full health in the middle of the arena
   reset() {
     this.position.set(0, 0, 0);
     this.velocity.set(0, 0, 0);
@@ -82,6 +91,7 @@ export class Player {
     this.spinRing.visible = false;
     this.slashArc.material.opacity = 0;
     this.setFlash(0x000000);
+    this.model.core.visible = true;
     this.syncModel();
   }
 
@@ -98,7 +108,7 @@ export class Player {
     this.hurtTimer -= dt;
     this.timeSinceHit += dt;
 
-    // ----- Healing factor: slow regen, faster if you avoid getting hit for 3 seconds -----
+    // ----- Core recharge: slow regen, faster if you avoid getting hit for 3 seconds -----
     const regen = this.timeSinceHit > 3 ? 5 : 1.5;
     this.hp = Math.min(this.maxHp, this.hp + regen * dt);
 
@@ -215,7 +225,7 @@ export class Player {
       // only hit enemies in front of us (about 140 degree arc), or really close ones
       if (forward.dot(to) < 0.35 && dist > 1) continue;
       e.hit(hit.damage, to.x * hit.knockback, to.z * hit.knockback, this.comboStep === 3);
-      this.world.effects.spawnSparks(e.position.clone().setY(1.1), 0xfff2a0, this.comboStep === 3 ? 12 : 6);
+      this.world.effects.spawnSparks(e.position.clone().setY(1.1), this.comboStep === 3 ? 0xffa040 : 0x9ffff5, this.comboStep === 3 ? 12 : 6);
       hitSomething = true;
     }
     if (hitSomething) {
@@ -231,7 +241,7 @@ export class Player {
     this.facing = Math.atan2(direction.x, direction.z);
     this.dashCooldown = DASH_COOLDOWN;
     this.dashHitSet = new Set();
-    this.world.effects.spawnRing(this.position, 0x6fa8ff, 1.5, 0.3);
+    this.world.effects.spawnRing(this.position, 0x3ff6e0, 1.5, 0.3);
   }
 
   dashHits() {
@@ -243,7 +253,7 @@ export class Player {
         const side = new THREE.Vector3(-this.dashDir.z, 0, this.dashDir.x);
         if (side.dot(new THREE.Vector3().subVectors(e.position, this.position)) < 0) side.negate();
         e.hit(10, side.x * 7, side.z * 7, false);
-        this.world.effects.spawnSparks(e.position.clone().setY(1.1), 0x9fd0ff, 6);
+        this.world.effects.spawnSparks(e.position.clone().setY(1.1), 0x9ffff5, 6);
         this.world.shake(0.12);
       }
     }
@@ -255,7 +265,7 @@ export class Player {
     this.spinTick = 0;
     this.spinCooldown = SPIN_COOLDOWN;
     this.spinRing.visible = true;
-    this.world.effects.spawnRing(this.position, 0xff4020, 4, 0.5);
+    this.world.effects.spawnRing(this.position, 0xe0702a, 4, 0.5);
     this.world.shake(0.25);
   }
 
@@ -286,8 +296,8 @@ export class Player {
   // ---------- Getting hurt ----------
 
   takeDamage(amount) {
-    if (this.dead || this.state === 'dash') return false; // dashing = invincible
-    if (this.state === 'spin') amount *= 0.5;             // berserker rage = tougher
+    if (this.dead || this.state === 'dash') return false; // blinking = untouchable
+    if (this.state === 'spin') amount *= 0.5;             // overdrive = tougher
     this.hp -= amount;
     this.hurtTimer = 0.15;
     this.timeSinceHit = 0;
@@ -319,7 +329,7 @@ export class Player {
     m.body.position.y = Math.abs(swing) * 0.08 * speedRatio;
     m.body.rotation.x = 0;
 
-    // default "ready" arm pose: claws out in front
+    // default "ready" arm pose: talons out in front
     m.armL.rotation.set(-0.6 - swing * 0.4 * speedRatio, 0, 0.15);
     m.armR.rotation.set(-0.6 + swing * 0.4 * speedRatio, 0, -0.15);
     this.slashArc.material.opacity = Math.max(0, this.slashArc.material.opacity - dt * 6);
@@ -341,8 +351,8 @@ export class Player {
         m.body.rotation.x = e * 0.25;
       }
       if (t > 0.3 && t < 0.6) {
-        this.slashArc.material.opacity = this.comboStep === 3 ? 0.95 : 0.7;
-        this.slashArc.material.color.setHex(this.comboStep === 3 ? 0xffe070 : 0xffffff);
+        this.slashArc.material.opacity = this.comboStep === 3 ? 0.75 : 0.55;
+        this.slashArc.material.color.setHex(this.comboStep === 3 ? 0xffa040 : 0x7ffff2);
         this.slashArc.scale.set(this.comboStep === 2 ? -1 : 1, 1, 1).multiplyScalar(this.comboStep === 3 ? 1.2 : 1);
       }
     } else if (this.state === 'dash') {
@@ -350,20 +360,24 @@ export class Player {
       m.armL.rotation.set(0.9, 0, 0.2);
       m.armR.rotation.set(0.9, 0, -0.2);
     } else if (this.state === 'spin') {
-      m.body.rotation.y += dt * 24; // whirlwind!
+      m.body.rotation.y += dt * 24; // overdrive whirlwind!
       m.armL.rotation.set(-0.2, 0, 1.5);
       m.armR.rotation.set(-0.2, 0, -1.5);
       this.spinRing.rotation.z -= dt * 18;
     }
 
     // flash red when hurt
-    this.setFlash(this.hurtTimer > 0 ? 0x990000 : (this.state === 'spin' ? 0x401000 : 0x000000));
+    this.setFlash(this.hurtTimer > 0 ? 0x990000 : (this.state === 'spin' ? 0x0a3a36 : 0x000000));
+    // the chest core pulses (faster while in overdrive)
+    const pulse = 0.16 * (1 + 0.25 * Math.sin(performance.now() / (this.state === 'spin' ? 60 : 250)));
+    m.core.scale.set(pulse, pulse, 0.06);
   }
 
   animateDeath(dt) {
     this.stateTime += dt;
     const t = Math.min(1, this.stateTime / 0.6);
     this.model.body.rotation.x = -t * Math.PI / 2 * 0.95; // fall on his back
+    this.model.core.visible = false; // core goes dark
     this.model.body.rotation.y = 0;
     this.model.body.position.y = t * 0.25;
     this.setFlash(0x000000);
@@ -381,17 +395,21 @@ export class Player {
   }
 }
 
-// ---------- Building the blocky Wolverine model ----------
+// ---------- Building Sarrow's blocky model ----------
 // Everything is made of boxes. The model faces +Z (forward) when rotation is 0.
-function buildWolverine() {
+// Look: charcoal hooded long coat, orange scarf/strap accents, a glowing teal
+// reactor core in his chest, and two teal energy talons on each gauntlet.
+function buildHero() {
   const mats = {
-    yellow: new THREE.MeshLambertMaterial({ color: 0xffc81a }),
-    blue: new THREE.MeshLambertMaterial({ color: 0x1f4fd6 }),
-    black: new THREE.MeshLambertMaterial({ color: 0x141414 }),
-    red: new THREE.MeshLambertMaterial({ color: 0xc4161c }),
-    skin: new THREE.MeshLambertMaterial({ color: 0xe0a878 }),
-    claw: new THREE.MeshLambertMaterial({ color: 0xe8eef5, emissive: 0x445566 }),
-    eye: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+    coat: new THREE.MeshLambertMaterial({ color: 0x2c3036 }),     // charcoal coat
+    coatDark: new THREE.MeshLambertMaterial({ color: 0x1c1f23 }),
+    pants: new THREE.MeshLambertMaterial({ color: 0x3d3b35 }),
+    leather: new THREE.MeshLambertMaterial({ color: 0x5a3d2a }),
+    orange: new THREE.MeshLambertMaterial({ color: 0xe0702a }),   // accent colour
+    metal: new THREE.MeshLambertMaterial({ color: 0x70757d }),
+    face: new THREE.MeshBasicMaterial({ color: 0x07090b }),       // shadowed face inside the hood
+    glow: new THREE.MeshBasicMaterial({ color: 0x3ff6e0 }),       // teal energy
+    blade: new THREE.MeshBasicMaterial({ color: 0x7ffff2, transparent: true, opacity: 0.9 }),
   };
   const unitBox = new THREE.BoxGeometry(1, 1, 1); // one shared box, scaled into each body part
 
@@ -399,11 +417,11 @@ function buildWolverine() {
   const body = new THREE.Group(); // used for leaning / spinning animations
   root.add(body);
 
-  function box(parent, mat, w, h, d, x, y, z) {
+  function box(parent, mat, w, h, d, x, y, z, shadow = true) {
     const mesh = new THREE.Mesh(unitBox, mat);
     mesh.scale.set(w, h, d);
     mesh.position.set(x, y, z);
-    mesh.castShadow = true;
+    mesh.castShadow = shadow;
     parent.add(mesh);
     return mesh;
   }
@@ -413,51 +431,63 @@ function buildWolverine() {
     const g = new THREE.Group();
     g.position.set(x, 0.85, 0);
     body.add(g);
-    box(g, mats.yellow, 0.3, 0.55, 0.32, 0, -0.28, 0); // thigh/shin
-    box(g, mats.blue, 0.34, 0.36, 0.4, 0, -0.67, 0.03); // boot
+    box(g, mats.pants, 0.28, 0.6, 0.3, 0, -0.3, 0);        // trousers
+    box(g, mats.leather, 0.32, 0.3, 0.4, 0, -0.7, 0.04);   // boot
+    box(g, mats.orange, 0.33, 0.05, 0.41, 0, -0.56, 0.04, false); // boot trim
     return g;
   }
-  const legL = leg(0.2);
-  const legR = leg(-0.2);
+  const legL = leg(0.18);
+  const legR = leg(-0.18);
 
-  // Hips, belt and torso
-  box(body, mats.blue, 0.66, 0.24, 0.38, 0, 0.94, 0);   // trunks
-  box(body, mats.red, 0.68, 0.08, 0.4, 0, 1.08, 0);     // belt
-  box(body, mats.yellow, 0.64, 0.5, 0.36, 0, 1.36, 0);  // yellow chest
-  box(body, mats.blue, 0.76, 0.24, 0.4, 0, 1.62, 0);    // blue shoulders / upper chest
-  box(body, mats.black, 0.05, 0.36, 0.3, 0.33, 1.32, 0);  // black tiger stripes on the sides
-  box(body, mats.black, 0.05, 0.36, 0.3, -0.33, 1.32, 0);
+  // Torso and the long coat
+  box(body, mats.coat, 0.66, 0.66, 0.4, 0, 1.36, 0);                 // coat body
+  const back = box(body, mats.coatDark, 0.7, 0.75, 0.07, 0, 0.78, -0.2); // coat tail at the back
+  back.rotation.x = -0.18;
+  for (const side of [-1, 1]) {
+    const flap = box(body, mats.coat, 0.07, 0.7, 0.38, side * 0.36, 0.8, -0.01); // side panels
+    flap.rotation.z = side * 0.12;
+    const front = box(body, mats.coatDark, 0.24, 0.62, 0.06, side * 0.22, 0.83, 0.2); // open front
+    front.rotation.z = side * 0.1;
+  }
+  box(body, mats.leather, 0.68, 0.08, 0.42, 0, 1.06, 0);              // belt
+  const strap = box(body, mats.orange, 0.08, 0.8, 0.43, 0, 1.36, 0, false); // bandolier strap
+  strap.rotation.z = 0.65;
+  box(body, mats.orange, 0.52, 0.13, 0.46, 0, 1.72, 0);               // scarf
+  box(body, mats.leather, 0.3, 0.2, 0.42, 0.42, 1.66, 0);             // one leather pauldron
 
-  // Head with the famous pointy mask
+  // The reactor core, glowing in the middle of his chest
+  const coreRing = box(body, mats.metal, 0.26, 0.26, 0.05, 0, 1.42, 0.2, false);
+  coreRing.rotation.z = Math.PI / 4;
+  const core = box(body, mats.glow, 0.16, 0.16, 0.06, 0, 1.42, 0.22, false);
+  core.rotation.z = Math.PI / 4;
+
+  // Head: a deep hood with two teal eye glints
   const head = new THREE.Group();
-  head.position.set(0, 1.95, 0);
+  head.position.set(0, 1.98, 0);
   body.add(head);
-  box(head, mats.yellow, 0.42, 0.42, 0.42, 0, 0, 0);
-  box(head, mats.black, 0.44, 0.13, 0.05, 0, 0.05, 0.21);   // black around the eyes
-  box(head, mats.eye, 0.09, 0.05, 0.02, 0.1, 0.05, 0.24);   // white eyes
-  box(head, mats.eye, 0.09, 0.05, 0.02, -0.1, 0.05, 0.24);
-  box(head, mats.skin, 0.3, 0.15, 0.05, 0, -0.12, 0.21);    // chin / jaw
-  const finL = box(head, mats.black, 0.09, 0.4, 0.16, 0.2, 0.3, 0); // mask "ears"
-  finL.rotation.z = -0.45;
-  const finR = box(head, mats.black, 0.09, 0.4, 0.16, -0.2, 0.3, 0);
-  finR.rotation.z = 0.45;
+  box(head, mats.coat, 0.48, 0.46, 0.5, 0, 0, 0);
+  box(head, mats.face, 0.32, 0.26, 0.04, 0, -0.04, 0.24, false);
+  box(head, mats.glow, 0.07, 0.04, 0.02, 0.08, -0.01, 0.265, false);
+  box(head, mats.glow, 0.07, 0.04, 0.02, -0.08, -0.01, 0.265, false);
+  const drape = box(head, mats.coatDark, 0.36, 0.12, 0.4, 0, 0.17, -0.2); // hood folds down the back
+  drape.rotation.x = 0.55;
 
-  // Arms with three claws each (group origin = shoulder)
+  // Arms with metal gauntlets and two glowing energy talons each (group origin = shoulder)
   function arm(x) {
     const g = new THREE.Group();
     g.position.set(x, 1.62, 0);
     body.add(g);
-    box(g, mats.blue, 0.3, 0.22, 0.32, 0, 0.02, 0);       // shoulder pad
-    box(g, mats.yellow, 0.22, 0.5, 0.24, 0, -0.3, 0);     // arm
-    box(g, mats.blue, 0.27, 0.26, 0.28, 0, -0.66, 0);     // glove
-    for (const cx of [-0.08, 0, 0.08]) {
-      box(g, mats.claw, 0.035, 0.62, 0.035, cx, -1.08, 0.04); // adamantium claws!
+    box(g, mats.coat, 0.24, 0.55, 0.26, 0, -0.27, 0);      // sleeve
+    box(g, mats.metal, 0.28, 0.3, 0.3, 0, -0.66, 0);       // gauntlet
+    box(g, mats.orange, 0.29, 0.06, 0.31, 0, -0.55, 0, false); // gauntlet stripe
+    for (const cx of [-0.07, 0.07]) {
+      box(g, mats.blade, 0.04, 0.72, 0.1, cx, -1.13, 0.03, false); // energy talon
     }
     return g;
   }
-  const armL = arm(0.47);
-  const armR = arm(-0.47);
+  const armL = arm(0.46);
+  const armR = arm(-0.46);
 
-  const flashMats = [mats.yellow, mats.blue, mats.black, mats.red, mats.skin];
-  return { root, body, head, legL, legR, armL, armR, flashMats };
+  const flashMats = [mats.coat, mats.coatDark, mats.pants, mats.leather, mats.orange, mats.metal];
+  return { root, body, head, core, legL, legR, armL, armR, flashMats };
 }

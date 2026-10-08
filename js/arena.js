@@ -1,7 +1,7 @@
 // arena.js
-// Builds the level: a metal floor, low walls around the edge, and some pillars/crates
-// to fight around. Also handles simple collision (keeping characters out of pillars
-// and inside the walls).
+// Builds the level: "the Slag Yard", a scrapyard foundry at dusk. Cracked concrete,
+// a hazard-striped ring in the middle, rusty fences, smokestacks, scrap heaps and barrels.
+// Also handles simple collision (keeping characters out of obstacles and inside the fence).
 import * as THREE from 'three';
 
 export const ARENA_HALF = 18; // the playable area goes from -18 to +18 on X and Z
@@ -10,10 +10,10 @@ export function createArena(scene) {
   const obstacles = []; // circles {x, z, r} that characters can't walk through
 
   // ---------- Floor ----------
-  // We draw a metal plate pattern on a little canvas and use it as the floor texture.
+  // We draw a cracked concrete slab pattern on a little canvas and use it as the floor texture.
   const floorTex = new THREE.CanvasTexture(makeFloorCanvas());
   floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
-  floorTex.repeat.set(10, 10);
+  floorTex.repeat.set(8, 8);
   floorTex.colorSpace = THREE.SRGBColorSpace;
   floorTex.anisotropy = 4;
   const floor = new THREE.Mesh(
@@ -24,70 +24,108 @@ export function createArena(scene) {
   floor.receiveShadow = true;
   scene.add(floor);
 
-  // Big red ring in the middle (a nod to Apocalypse's colours)
-  const emblem = new THREE.Mesh(
-    new THREE.RingGeometry(3.2, 3.8, 48),
-    new THREE.MeshBasicMaterial({ color: 0x8a1020 })
-  );
-  emblem.rotation.x = -Math.PI / 2;
-  emblem.position.y = 0.01;
-  scene.add(emblem);
+  // Hazard ring in the middle: alternating yellow/black segments
+  const hazardYellow = new THREE.MeshBasicMaterial({ color: 0xd9a21b });
+  const hazardBlack = new THREE.MeshBasicMaterial({ color: 0x1b1b1b });
+  const SEGMENTS = 24;
+  for (let i = 0; i < SEGMENTS; i++) {
+    const seg = new THREE.Mesh(
+      new THREE.RingGeometry(3.3, 3.8, 3, 1, (i / SEGMENTS) * Math.PI * 2, (Math.PI * 2) / SEGMENTS),
+      i % 2 ? hazardYellow : hazardBlack
+    );
+    seg.rotation.x = -Math.PI / 2;
+    seg.position.y = 0.01;
+    scene.add(seg);
+  }
+  // a glowing teal drain grate in the very centre
+  const grate = new THREE.Mesh(new THREE.CircleGeometry(1.1, 6), new THREE.MeshBasicMaterial({ color: 0x0f3b38 }));
+  grate.rotation.x = -Math.PI / 2;
+  grate.position.y = 0.012;
+  scene.add(grate);
 
-  // ---------- Walls ----------
-  const wallMat = new THREE.MeshLambertMaterial({ color: 0x2c2338 });
-  const glowMat = new THREE.MeshBasicMaterial({ color: 0xa040ff });
+  // ---------- Fence walls ----------
+  const fenceMat = new THREE.MeshLambertMaterial({ color: 0x6b3a22 }); // rusty corrugated metal
+  const postMat = new THREE.MeshLambertMaterial({ color: 0x2b2826 });
+  const lampMat = new THREE.MeshBasicMaterial({ color: 0xffb050 });
   const len = ARENA_HALF * 2 + 4;
   const wallSpecs = [
-    [0, -(ARENA_HALF + 1.5), len, 1],
-    [0, ARENA_HALF + 1.5, len, 1],
-    [-(ARENA_HALF + 1.5), 0, 1, len],
-    [ARENA_HALF + 1.5, 0, 1, len],
+    [0, -(ARENA_HALF + 1.5), len, 0.5],
+    [0, ARENA_HALF + 1.5, len, 0.5],
+    [-(ARENA_HALF + 1.5), 0, 0.5, len],
+    [ARENA_HALF + 1.5, 0, 0.5, len],
   ];
   for (const [x, z, w, d] of wallSpecs) {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 1.4, d), wallMat);
-    wall.position.set(x, 0.7, z);
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 1.8, d), fenceMat);
+    wall.position.set(x, 0.9, z);
     wall.receiveShadow = true;
     scene.add(wall);
-    const strip = new THREE.Mesh(new THREE.BoxGeometry(w + 0.02, 0.08, d + 0.02), glowMat);
-    strip.position.set(x, 1.42, z);
-    scene.add(strip);
+  }
+  // fence posts with little amber work lamps
+  const postGeo = new THREE.BoxGeometry(0.35, 2.4, 0.35);
+  const lampGeo = new THREE.BoxGeometry(0.3, 0.2, 0.3);
+  for (let i = -ARENA_HALF; i <= ARENA_HALF; i += 6) {
+    for (const [x, z] of [[i, -(ARENA_HALF + 1.5)], [i, ARENA_HALF + 1.5], [-(ARENA_HALF + 1.5), i], [ARENA_HALF + 1.5, i]]) {
+      const post = new THREE.Mesh(postGeo, postMat);
+      post.position.set(x, 1.2, z);
+      scene.add(post);
+      const lamp = new THREE.Mesh(lampGeo, lampMat);
+      lamp.position.set(x, 2.45, z);
+      scene.add(lamp);
+    }
   }
 
-  // ---------- Pillars ----------
-  const pillarMat = new THREE.MeshLambertMaterial({ color: 0x77738a });
-  const bandMat = new THREE.MeshLambertMaterial({ color: 0x5a2a8a, emissive: 0x2a0a40 });
-  const pillarGeo = new THREE.CylinderGeometry(1, 1.15, 3.2, 12);
-  const bandGeo = new THREE.CylinderGeometry(1.08, 1.08, 0.35, 12);
-  const pillarSpots = [[-8, -7], [8, -7], [-8, 8], [8, 8], [0, -13], [-14, 0], [14, 1]];
-  for (const [x, z] of pillarSpots) {
-    const p = new THREE.Mesh(pillarGeo, pillarMat);
-    p.position.set(x, 1.6, z);
+  // ---------- Smokestacks (round obstacles) ----------
+  const stackMat = new THREE.MeshLambertMaterial({ color: 0x4a4440 });
+  const bandMat = new THREE.MeshLambertMaterial({ color: 0xa8481c });
+  const stackGeo = new THREE.CylinderGeometry(0.85, 1.05, 3.4, 10);
+  const bandGeo = new THREE.CylinderGeometry(0.92, 0.92, 0.3, 10);
+  for (const [x, z] of [[-8, -7], [8, 8], [0, -13], [14, 1]]) {
+    const p = new THREE.Mesh(stackGeo, stackMat);
+    p.position.set(x, 1.7, z);
     p.castShadow = true;
     p.receiveShadow = true;
     scene.add(p);
-    const band = new THREE.Mesh(bandGeo, bandMat);
-    band.position.set(x, 1.2, z);
-    scene.add(band);
-    obstacles.push({ x, z, r: 1.1 });
+    for (const y of [1.0, 2.6]) {
+      const band = new THREE.Mesh(bandGeo, bandMat);
+      band.position.set(x, y, z);
+      scene.add(band);
+    }
+    obstacles.push({ x, z, r: 1.05 });
   }
 
-  // ---------- Crates ----------
-  const crateMat = new THREE.MeshLambertMaterial({ color: 0x6b5a3a });
-  const crateGeo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
-  for (const [x, z, rot] of [[4, 13, 0.3], [-5, 13.5, -0.2], [13, -9, 0.6], [-13, -10, 0.1]]) {
-    const c = new THREE.Mesh(crateGeo, crateMat);
-    c.position.set(x, 0.8, z);
-    c.rotation.y = rot;
-    c.castShadow = true;
-    c.receiveShadow = true;
-    scene.add(c);
-    obstacles.push({ x, z, r: 1.05 });
+  // ---------- Scrap heaps: piles of tilted junk ----------
+  const junkColors = [0x7a4a2a, 0x55524d, 0x8c6a3a, 0x3d4a46];
+  const junkMats = junkColors.map((c) => new THREE.MeshLambertMaterial({ color: c }));
+  const junkGeo = new THREE.BoxGeometry(1, 1, 1);
+  for (const [x, z] of [[8, -7], [-8, 8], [-14, 0]]) {
+    for (let i = 0; i < 6; i++) {
+      const j = new THREE.Mesh(junkGeo, junkMats[i % junkMats.length]);
+      const s = 0.6 + ((i * 37) % 10) / 14;
+      j.scale.set(s * 1.3, s * 0.7, s);
+      j.position.set(x + Math.sin(i * 2.1) * 0.5, 0.3 + (i % 3) * 0.45, z + Math.cos(i * 1.7) * 0.5);
+      j.rotation.set(i * 0.4, i * 1.1, i * 0.3);
+      j.castShadow = true;
+      j.receiveShadow = true;
+      scene.add(j);
+    }
+    obstacles.push({ x, z, r: 1.25 });
+  }
+
+  // ---------- Oil barrels ----------
+  const barrelMat = new THREE.MeshLambertMaterial({ color: 0xc0561e });
+  const barrelGeo = new THREE.CylinderGeometry(0.45, 0.45, 1.1, 10);
+  for (const [x, z] of [[4, 13], [5, 13.6], [-5, 13.5], [13, -9], [-13, -10], [-12.4, -10.8]]) {
+    const b = new THREE.Mesh(barrelGeo, barrelMat);
+    b.position.set(x, 0.55, z);
+    b.castShadow = true;
+    scene.add(b);
+    obstacles.push({ x, z, r: 0.6 });
   }
 
   return {
     obstacles,
 
-    // Push a character (position + radius) out of obstacles and keep it inside the walls
+    // Push a character (position + radius) out of obstacles and keep it inside the fence
     resolve(pos, radius) {
       for (const o of obstacles) {
         const dx = pos.x - o.x, dz = pos.z - o.z;
@@ -110,7 +148,7 @@ export function createArena(scene) {
         const along = (Math.random() * 2 - 1) * (ARENA_HALF - 2);
         const edge = ARENA_HALF - 1.5;
         const side = Math.floor(Math.random() * 4);
-        const x = side === 0 ? along : side === 1 ? along : side === 2 ? -edge : edge;
+        const x = side < 2 ? along : side === 2 ? -edge : edge;
         const z = side === 0 ? -edge : side === 1 ? edge : along;
         const farEnough = Math.hypot(x - playerPos.x, z - playerPos.z) > minDist;
         const blocked = obstacles.some((o) => Math.hypot(x - o.x, z - o.z) < o.r + 1);
@@ -121,23 +159,31 @@ export function createArena(scene) {
   };
 }
 
-// Draws one tile of the floor pattern
+// Draws one tile of the floor: dusty concrete slabs with cracks and oil stains
 function makeFloorCanvas() {
   const c = document.createElement('canvas');
   c.width = c.height = 128;
   const g = c.getContext('2d');
-  g.fillStyle = '#3d3549';
+  g.fillStyle = '#5a534b';
   g.fillRect(0, 0, 128, 128);
-  g.fillStyle = '#463e54';
-  g.fillRect(4, 4, 56, 56);
-  g.fillRect(68, 68, 56, 56);
-  g.strokeStyle = '#231d2c';
-  g.lineWidth = 4;
-  g.strokeRect(0, 0, 128, 128);
-  g.beginPath(); g.moveTo(64, 0); g.lineTo(64, 128); g.moveTo(0, 64); g.lineTo(128, 64); g.stroke();
-  g.fillStyle = '#5a5268'; // rivets
-  for (const [x, y] of [[10, 10], [54, 10], [10, 54], [54, 54], [74, 74], [118, 74], [74, 118], [118, 118]]) {
-    g.beginPath(); g.arc(x, y, 2.5, 0, Math.PI * 2); g.fill();
+  // speckle
+  for (let i = 0; i < 500; i++) {
+    const v = 75 + Math.floor(Math.random() * 28);
+    g.fillStyle = `rgb(${v + 10},${v + 2},${v - 8})`;
+    g.fillRect(Math.random() * 128, Math.random() * 128, 2, 2);
   }
+  // oil stain
+  g.fillStyle = 'rgba(30,25,20,0.25)';
+  g.beginPath(); g.ellipse(88, 40, 18, 11, 0.4, 0, Math.PI * 2); g.fill();
+  // slab joints
+  g.strokeStyle = '#3e3832';
+  g.lineWidth = 3;
+  g.strokeRect(0, 0, 128, 128);
+  // cracks
+  g.lineWidth = 1.5;
+  g.beginPath();
+  g.moveTo(10, 70); g.lineTo(30, 64); g.lineTo(42, 80); g.lineTo(60, 76);
+  g.moveTo(100, 100); g.lineTo(108, 112); g.lineTo(122, 116);
+  g.stroke();
   return c;
 }
